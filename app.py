@@ -12,12 +12,12 @@ import tempfile
 import httpcore
 from dotenv import load_dotenv,find_dotenv,dotenv_values
 from huggingface_hub import hf_hub_download
-from config import get_config
+# from config import get_config
 import os
 
 
-print("HF_DATASET_CHECKPOINT",get_config('HF_DATASET_CHECKPOINT'))
-print("FAISS_INDEX_FILE_PATH",get_config('FAISS_INDEX_FILE_PATH'))
+print("HF_DATASET_CHECKPOINT",os.getenv('HF_DATASET_CHECKPOINT'))
+print("FAISS_INDEX_FILE_PATH",os.getenv('FAISS_INDEX_FILE_PATH'))
 
 setattr(httpcore, 'SyncHTTPTransport', None)
 
@@ -95,8 +95,11 @@ def get_cached_text_dataset():
 
 Encoder=get_cached_encoder()
 
-repo_id=get_config('VECTOR_STORE_REPO_ID')
-repo_file_name=get_config('VECTOR_STORE_FILE_NAME')
+repo_id=os.getenv('VECTOR_STORE_REPO_ID')
+repo_file_name=os.getenv('VECTOR_STORE_FILE_NAME')
+
+print("repo_id : ",repo_id)
+print("repo_file_name : ",repo_file_name)
 
 
 VectorIndex=load_cached_index(repo_id,repo_file_name)
