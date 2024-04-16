@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from datasets import load_dataset
-from config import get_config
+# from config import get_config
 
 def load_text_dataset():
     load_dotenv()
