@@ -93,7 +93,7 @@ def infer(Query,Context,PreviousAnswer=None):
         }
       })
 
-      print("done infer")
+      print("done infer",output)
       return output[0]['generated_text']
   except Exception as e:
         print(f"An error occurred: {e}")
