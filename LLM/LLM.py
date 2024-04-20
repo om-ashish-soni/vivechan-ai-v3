@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from util import get_device
+import traceback 
 
 # not in use as of now
 def load_llm():
@@ -96,6 +97,8 @@ def infer(Query,Context,PreviousAnswer=None):
       print("done infer",output)
       return output[0]['generated_text']
   except Exception as e:
+        # printing stack trace 
+        traceback.print_exc() 
         print(f"An error occurred: {e}")
         return f"could not generate answer Due to Error, please try after some time ,{e} "  
 
