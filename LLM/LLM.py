@@ -59,13 +59,14 @@ load_dotenv()
 hf_token=os.getenv('HF_TOKEN')
 
 # querying
-def query(payload):
+def query(llm_model,payload):
     
     import requests
 
     # Replace API URL with your LLM API URL ( from hugging face. i.e. )
     # for example HF_LLM_INFERENCE_CHECKPOINT='https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2'
-    API_URL = os.getenv('HF_LLM_INFERENCE_CHECKPOINT')
+    # API_URL = os.getenv('HF_LLM_INFERENCE_CHECKPOINT')
+    API_URL = llm_model
 
     headers = {"Authorization": "Bearer "+hf_token}
     
@@ -73,26 +74,29 @@ def query(payload):
     response = requests.post(API_URL, headers=headers, json=payload)
     return response.json()
 
-def prompt_format_2(Query,Context,PreviousAnswer=None):
-  formatted_prompt=format_prompt_1(Query,Context) if (PreviousAnswer == None) else continue_generation_prompt_1(Query,Context,PreviousAnswer)
+def prompt_format_2(Query,Context):
+  formatted_prompt=format_prompt_1(Query,Context)
   prompt='<s>[INST] '+formatted_prompt+'\n [/INST] Model answer</s>'
   return prompt
 
-def infer(Query,Context,PreviousAnswer=None):
+def infer(Query,Context,llm_model):
   try:
       print("going to infer")
-      prompt=prompt_format_2(Query,Context,PreviousAnswer)
+      prompt=prompt_format_2(Query,Context)
       
-      output = query({
+      output = query(
+         llm_model,
+         {
           "inputs": prompt,
           "parameters": 
-        {
-          "contentType": "application/json",
-          "max_tokens": 12800,
-          "max_new_tokens": 4000,
-          "return_full_text": False
+          {
+            "contentType": "application/json",
+            "max_tokens": 12800,
+            "max_new_tokens": 4000,
+            "return_full_text": False
+          }
         }
-      })
+      )
 
       print("done infer",output)
       return output[0]['generated_text']

@@ -37,6 +37,10 @@ language_choices = {
     # 'Bengali': 'bn',
 }
 
+model_choices={
+    "Mistral-7b-v0.2":"https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
+    "gemma-7b":"https://api-inference.huggingface.co/models/google/gemma-7b"
+}
 # MAIN METHOD TO SET PAGE CONFIG
 def main():
     
@@ -84,9 +88,9 @@ def load_cached_index(repo_id,repo_file_name):
     print("Done Loading Index .....")
     return VectorIndex
 
-# @st.cache_resource
-# def get_cached_index():
-#     return load_index()
+@st.cache_resource
+def get_cached_index():
+    return load_index()
 
 @st.cache_resource
 def get_cached_text_dataset():
@@ -103,6 +107,7 @@ print("repo_file_name : ",repo_file_name)
 
 
 VectorIndex=load_cached_index(repo_id,repo_file_name)
+# VectorIndex=get_cached_index()
 
 Texts=get_cached_text_dataset()
 
@@ -125,6 +130,9 @@ query = st.text_input("Ask any question related spritual matters i.e. Shiv Mahap
 # SELECTING LANGUAGE
 language=language_choices[st.selectbox("Select Language:", list(language_choices.keys()))]
 print("language : ",language)
+
+llm_model=model_choices[st.selectbox("Select Model:", list(model_choices.keys()))]
+print("llm_model : ",llm_model)
 
 def ask(IsContinue=False):
 
@@ -162,7 +170,7 @@ def ask(IsContinue=False):
     
     
     # generating answer from the context
-    CurrentAnswer=infer(translated_query,Context)
+    CurrentAnswer=infer(translated_query,Context,llm_model)
 
     # Future feature : to support continue generation of previous answer
     if IsContinue : Answer+=CurrentAnswer
