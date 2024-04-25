@@ -10,7 +10,7 @@ import faiss
 import tempfile
 # from translator import translate
 import httpcore
-from dotenv import load_dotenv,find_dotenv,dotenv_values
+from dotenv import load_dotenv
 from huggingface_hub import hf_hub_download
 # from config import get_config
 import os
@@ -18,8 +18,10 @@ import os
 
 print("HF_DATASET_CHECKPOINT",os.getenv('HF_DATASET_CHECKPOINT'))
 print("FAISS_INDEX_FILE_PATH",os.getenv('FAISS_INDEX_FILE_PATH'))
-
+print("ENVIRONMENT",os.getenv('ENVIRONMENT'))
 setattr(httpcore, 'SyncHTTPTransport', None)
+
+ENVIRONMENT=os.getenv('ENVIRONMENT')
 
 # SOME STATIC VARIABLES
 k=10
@@ -41,6 +43,14 @@ model_choices={
     "Mistral-7b-v0.2":"https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
     "gemma-7b":"https://api-inference.huggingface.co/models/google/gemma-7b"
 }
+
+index_choices={
+    "Index Flat IP":"vivechan-spiritual-IndexFlatIP-v3.faiss",
+    "Index Flat L2":"vivechan-spiritual-v3.faiss",
+    "Index HNSW Flat":"vivechan-spiritual-IndexHNSWFlat-v3.faiss",
+    "Index LSH":"vivechan-spiritual-IndexLSH-v3.faiss"
+}
+
 # MAIN METHOD TO SET PAGE CONFIG
 def main():
     
@@ -62,8 +72,8 @@ def get_dir_path():
     os.makedirs(temp_dir, exist_ok=True)
     return temp_dir
 
-@st.cache_resource
-def load_cached_index(repo_id,repo_file_name):
+# @st.cache_resource
+def download_cached_index(repo_id,repo_file_name):
     load_dotenv()
     HF_TOKEN = os.getenv("HF_TOKEN")
     
@@ -88,9 +98,25 @@ def load_cached_index(repo_id,repo_file_name):
     print("Done Loading Index .....")
     return VectorIndex
 
+# @st.cache_resource
+def get_cached_index(repo_id,repo_file_name):
+    if (ENVIRONMENT == 'STAGING'):
+        index_file_path=os.path.join('indices',repo_file_name)
+        print("will load locally index_file_path : ",index_file_path)
+        return load_index(index_file_path)
+    else:
+        print("will download index",repo_file_name)
+        return download_cached_index(repo_id,repo_file_name)
+    
+    
 @st.cache_resource
-def get_cached_index():
-    return load_index()
+def load_all_indices(repo_id):
+    VectorIndexMap={}
+    for index_name,index_file_name in index_choices.items():
+        CurrentVectorIndex=get_cached_index(repo_id,index_file_name)
+        VectorIndexMap[index_file_name]=CurrentVectorIndex
+    return VectorIndexMap
+
 
 @st.cache_resource
 def get_cached_text_dataset():
@@ -99,6 +125,7 @@ def get_cached_text_dataset():
 
 Encoder=get_cached_encoder()
 
+
 repo_id=os.getenv('VECTOR_STORE_REPO_ID')
 repo_file_name=os.getenv('VECTOR_STORE_FILE_NAME')
 
@@ -106,8 +133,10 @@ print("repo_id : ",repo_id)
 print("repo_file_name : ",repo_file_name)
 
 
-VectorIndex=load_cached_index(repo_id,repo_file_name)
-# VectorIndex=get_cached_index()
+# VectorIndex=load_cached_index(repo_id,repo_file_name)
+# VectorIndex=get_cached_index(repo_id,repo_file_name)
+VectorIndexMap=load_all_indices(repo_id)
+print("VectorIndexMap keys : ",VectorIndexMap.keys())
 
 Texts=get_cached_text_dataset()
 
@@ -134,6 +163,15 @@ print("language : ",language)
 llm_model=model_choices[st.selectbox("Select Model:", list(model_choices.keys()))]
 print("llm_model : ",llm_model)
 
+VectorIndexFileName=index_choices[st.selectbox("Select Search Index Method:", list(index_choices.keys()))]
+print("VectorIndexFileName : ",VectorIndexFileName,VectorIndexFileName in VectorIndexMap)
+VectorIndex=VectorIndexMap[VectorIndexFileName]
+
+def refine_answer(Answer):
+    if Answer.startswith(">:"):
+        return Answer[len(">:"):]
+    return Answer
+
 def ask(IsContinue=False):
 
     PreviousAnswer=st.session_state.get('PreviousAnswer','')
@@ -158,12 +196,12 @@ def ask(IsContinue=False):
     
     BetterPositions=[ Pos for i,Pos in enumerate(Positions) if Similarity[i] >= matching_threshold]
 
-    print("Distance : ",Distance)
-    print("Similarity : ",Similarity)
+    # print("Distance : ",Distance)
+    # print("Similarity : ",Similarity)
 
-    print("Positions : ",Positions)
+    # print("Positions : ",Positions)
     print("BetterPositions : ",BetterPositions)
-    print("Total Len of text : ",len(Texts))
+    # print("Total Len of text : ",len(Texts))
 
     Context=generate_context(Texts,BetterPositions)
 
@@ -180,6 +218,7 @@ def ask(IsContinue=False):
     # st.session_state['PreviousAnswer']=PreviousAnswer
     # st.session_state['Answer']=Answer
 
+    Answer=refine_answer(Answer)
     write_answer(Answer,max_line_length,language)
     # st.session_state['ShouldContinue']=True
 

@@ -2,3 +2,6 @@
 .venv
 __pycache__
 indices/vivechan-spiritual-v3.faiss
+indices/vivechan-spiritual-IndexFlatIP-v3.faiss
+indices/vivechan-spiritual-IndexHNSWFlat-v3.faiss
+indices/vivechan-spiritual-IndexLSH-v3.faiss
