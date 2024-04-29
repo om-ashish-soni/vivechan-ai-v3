@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 from huggingface_hub import hf_hub_download
 # from config import get_config
 import os
+import time
 
 
 print("HF_DATASET_CHECKPOINT",os.getenv('HF_DATASET_CHECKPOINT'))
@@ -41,7 +42,7 @@ language_choices = {
 
 model_choices={
     "Mistral-7b-v0.2":"https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
-    "gemma-7b":"https://api-inference.huggingface.co/models/google/gemma-7b"
+    # "gemma-7b":"https://api-inference.huggingface.co/models/google/gemma-7b"
 }
 
 index_choices={
@@ -171,6 +172,61 @@ def refine_answer(Answer):
     if Answer.startswith(">:"):
         return Answer[len(">:"):]
     return Answer
+
+def benchmark_single_infer(query):
+    encoded=Encoder.encode([query])
+    Distance,Positions=VectorIndex.search(encoded,k)
+    Distance=Distance[0]
+    Positions=Positions[0]
+    min_distance=min(Distance)
+    max_distance=max(Distance)
+    if max_distance==min_distance:
+        max_distance+=0.001
+
+    Similarity=[(1-(dist-min_distance)/(max_distance-min_distance)) for dist in Distance]
+    
+    BetterPositions=[ Pos for i,Pos in enumerate(Positions) if Similarity[i] >= matching_threshold]
+
+    Context=generate_context(Texts,BetterPositions)
+
+    # generating answer from the context
+    Answer=infer(query,Context,llm_model)
+    return Answer
+
+def benchmark_eval():
+    import pandas as pd
+    import json
+
+    # Read the CSV file
+    df = pd.read_csv('benchmarks/vivechan_evaluation_benchmark.csv')
+
+    # Create an empty list to store the JSON objects
+    json_list = []
+
+    # Iterate over each row in the DataFrame
+    for index, row in df.iterrows():
+        time.sleep(1)
+        question = row['Question']
+        Answer =  benchmark_single_infer(question)
+        print("Processing : ",index+1)
+        
+        # Create a JSON object with the desired columns
+        json_obj = {
+            'No.': index + 1,
+            'Question': row['Question'],
+            'Scripture': row['Scripture'],
+            'Answer': Answer
+        }
+        # Append the JSON object to the list
+        json_list.append(json_obj)
+
+    # Print the list of JSON objects
+    # print(json.dumps(json_list))
+
+    # Dumping benchmark results to JSON file
+    with open('benchmark_result.json', 'w') as f:
+        f.write(json.dumps(json_list))
+
 
 def ask(IsContinue=False):
 
