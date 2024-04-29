@@ -161,8 +161,9 @@ query = st.text_input("Ask any question related spritual matters i.e. Shiv Mahap
 language=language_choices[st.selectbox("Select Language:", list(language_choices.keys()))]
 print("language : ",language)
 
-llm_model=model_choices[st.selectbox("Select Model:", list(model_choices.keys()))]
-print("llm_model : ",llm_model)
+# llm_model=model_choices[st.selectbox("Select Model:", list(model_choices.keys()))]
+llm_model=model_choices["Mistral-7b-v0.2"]
+print("llm_model without choice : ",llm_model)
 
 VectorIndexFileName=index_choices[st.selectbox("Select Search Index Method:", list(index_choices.keys()))]
 print("VectorIndexFileName : ",VectorIndexFileName,VectorIndexFileName in VectorIndexMap)
